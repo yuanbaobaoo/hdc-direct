@@ -1,0 +1,40 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dev dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test (protocol golden cases)
+        run: npm test
+
+      - name: Package release assets
+        run: npm run pack:release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-release/hdc-direct-*.tar.gz
+            dist-release/hdc-direct-*.tar.gz.sha256
+            dist-release/hdc-direct-*.json
+          generate_release_notes: true

@@ -1,0 +1,45 @@
+{
+  "name": "hdc-direct",
+  "version": "0.2.0",
+  "description": "HDC client that talks directly to on-device hdcd over TCP — no hdc server / UDS required. Works inside HAP sandboxes where the stock hdc toolchain cannot start.",
+  "type": "module",
+  "bin": {
+    "hdc-direct": "./dist/src/cli.js"
+  },
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test \"dist/test/**/*.test.js\"",
+    "prepare": "npm run build",
+    "pack:release": "node scripts/package-release.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "harmonyos",
+    "openharmony",
+    "hdc",
+    "hdcd",
+    "hap",
+    "devecocli"
+  ],
+  "license": "Apache-2.0"
+}

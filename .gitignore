@@ -1,2 +1,5 @@
-/target
-/dist
+node_modules/
+dist/
+dist-release/
+*.tgz
+.DS_Store
