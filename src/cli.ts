@@ -28,6 +28,7 @@ const USAGE = `hdc-direct — talk to on-device hdcd directly over TCP
 USAGE:
   hdc-direct [-t <host:port>] shell "<command>"
   hdc-direct [-t <host:port>] file send <local> <remote>
+  hdc-direct [-t <host:port>] file recv <remote> <local>
   hdc-direct [-t <host:port>] install <local.hap> [--launch <bundle> <ability>]
   hdc-direct [-t <host:port>] root
   hdc-direct tconn <host:port> [-remove]
@@ -74,6 +75,8 @@ const SUBCOMMAND = {
     file: 'file',
     // file 的子动作：上传
     send: 'send',
+    // file 的子动作：下载
+    recv: 'recv',
     // 上传并安装 HAP
     install: 'install',
     // 请求 hdcd 以 root 重启
@@ -293,11 +296,16 @@ export async function run(argv: string[]): Promise<number> {
         }
 
         case SUBCOMMAND.file: {
-            if (args[0] !== SUBCOMMAND.send || args.length < 3) {
+            const action = args[0];
+            const isSend = action === SUBCOMMAND.send;
+            const isRecv = action === SUBCOMMAND.recv;
+            if ((!isSend && !isRecv) || args.length < 3) {
                 process.stderr.write(`${USAGE}\n`);
                 return EXIT_USAGE;
             }
-            const summary = await withSession(resolveTarget(target), (s) => s.fileSend(args[1], args[2]));
+            const summary = await withSession(resolveTarget(target), (s) =>
+                isSend ? s.fileSend(args[1], args[2]) : s.fileRecv(args[1], args[2]),
+            );
             process.stdout.write(`${summary}\n`);
             return EXIT_OK;
         }

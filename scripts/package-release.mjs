@@ -30,7 +30,7 @@ const npmFileName = `${pkg.name.replace(/^@/, '').replace('/', '-')}-${pkg.versi
 // npm 可执行文件名（Windows 下为 npm.cmd）
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 // 协议验证结论：写入版本元信息，供下游判断兼容性
-const PROTOCOL_NOTE = 'hdcd 3.2.0f verified (2026-11-02, HarmonyOS PC HAD-W32 / OpenHarmony 7.0.0.109)';
+const PROTOCOL_NOTE = 'hdcd 3.2.0f verified (2026-11-02, HarmonyOS PC HAD-W32 / OpenHarmony 7.0.0.109; shell / file send / file recv)';
 // 运行时要求说明
 const RUNTIME_NOTE = 'node >= 18, zero dependencies';
 // 整包包含的文件（运行时所需）

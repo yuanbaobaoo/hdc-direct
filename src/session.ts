@@ -19,6 +19,7 @@ import {
     buildFrame,
     encodeHandshake,
     parseHandshake,
+    pbDecode,
     pbString,
     pbVarint,
     tlvAppend,
@@ -391,6 +392,63 @@ export class HdcSession {
         this.send(buildFrame(channelId, CMD.KERNEL_CHANNEL_CLOSE, Buffer.from([CHANNEL_CLOSE_ACK])));
         if (!ok) throw new Error(`file transfer failed: ${summary || '(no summary)'}`);
         return summary;
+    }
+
+    /**
+     * 从设备下载文件到本地。
+     *
+     * 时序：FILE_INIT("recv <remote> <local>") → daemon 以 master 身份打开远端文件、
+     * 回 FILE_CHECK(TransferConfig) → 客户端回 FILE_BEGIN(空) → 收 FILE_DATA
+     * （同样 64B 前缀 + 数据）→ 收满 fileSize 字节后客户端主动发 FILE_FINISH(01)
+     * → daemon 回 00 → ECHO 总结 → close。
+     *
+     * 方向与 fileSend 相反：fileSend 由客户端发 FILE_CHECK，daemon 当 slave 写文件；
+     * fileRecv 由客户端发 FILE_INIT，daemon 当 master 读文件（hdc file.cpp 实证）。
+     * master 发完数据不会主动结束（源码："Only slave receives complete talents Finish"），
+     * 必须由客户端按 fileSize 判定收满并先发 FINISH。
+     *
+     * @param remotePath 设备源路径
+     * @param localPath 本地目标路径
+     * @returns daemon 返回的传输总结
+     */
+    async fileRecv(remotePath: string, localPath: string): Promise<string> {
+        const channelId = newChannelId();
+
+        // 1) FILE_INIT：daemon 侧按 "recv remote local" 解析（argv 末项是 client 本地路径）
+        this.send(buildFrame(channelId, CMD.FILE_INIT, Buffer.from(`recv ${remotePath} ${localPath}`)));
+
+        // 2) daemon 回 FILE_CHECK + TransferConfig：field 1 = fileSize
+        const check = await this.wait(channelId, CMD.FILE_CHECK, 'file check');
+        const fileSizeField = pbDecode(check.data).find((f) => f.field === 1);
+        const fileSize = Number(fileSizeField?.value ?? 0n);
+
+        // 3) FILE_BEGIN 空 payload：daemon 用默认缓冲大小开始发送
+        this.send(buildFrame(channelId, CMD.FILE_BEGIN, Buffer.alloc(0)));
+
+        // 4) 收数据块：daemon 不会发 FINISH，收满 fileSize 即结束（空文件直接跳到 5）
+        const chunks: Buffer[] = [];
+        let received = 0;
+        while (received < fileSize) {
+            const frame = await this.wait(channelId, undefined, 'file data');
+            if (frame.commandFlag !== CMD.FILE_DATA) continue;
+            // 前缀是 TransferPayload（index/compressSize 等），文件内容在其后
+            const chunk = frame.data.subarray(PAYLOAD_PREFIX_RESERVE);
+            chunks.push(chunk);
+            received += chunk.length;
+        }
+
+        // 5) 客户端主动 FINISH(01)，daemon 回 00 后结束任务（master 侧不发 ECHO/总结）
+        this.send(buildFrame(channelId, CMD.FILE_FINISH, Buffer.from([FILE_FINISH_OK])));
+        const fin = await this.wait(channelId, CMD.FILE_FINISH, 'file finish ack');
+        const ok = fin.data.length > 0 && fin.data[0] === CHANNEL_CLOSE_ACK;
+
+        const data = Buffer.concat(chunks);
+        // 大小校验：避免半包静默落盘
+        if (!ok || data.length !== fileSize) {
+            throw new Error(`file recv failed (${data.length}/${fileSize} bytes)`);
+        }
+        fs.writeFileSync(localPath, data);
+        return `FileTransfer finish, Size:${data.length}`;
     }
 
     /**

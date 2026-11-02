@@ -141,3 +141,18 @@ test('file payload prefix is 64 bytes', () => {
     assert.equal(payload.length, PAYLOAD_PREFIX_RESERVE);
     assert.deepEqual(payload.subarray(0, 8), hex('0800100018142014'));
 });
+
+test('file recv uses CMD_FILE_INIT with recv argument line', () => {
+    // hdc translate.cpp：file send / file recv 都映射到 CMD_FILE_INIT(3000)，
+    // payload 为去掉 "file " 前缀的命令行；daemon 按 argv 末项当本地路径读文件回传。
+    assert.equal(CMD.FILE_INIT, 3000);
+
+    const frame = buildFrame(7, CMD.FILE_INIT, Buffer.from('recv /data/local/tmp/shot.jpeg /tmp/shot.jpeg'));
+    const reader = new FrameReader();
+    reader.feed(frame);
+    const parsed = reader.nextFrame();
+    assert.ok(parsed);
+    assert.equal(parsed.channelId, 7);
+    assert.equal(parsed.commandFlag, 3000);
+    assert.equal(parsed.data.toString(), 'recv /data/local/tmp/shot.jpeg /tmp/shot.jpeg');
+});

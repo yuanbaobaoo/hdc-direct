@@ -111,6 +111,7 @@ session.close();
 ```sh
 hdc-direct [-t <host:port>] shell "<command>"
 hdc-direct [-t <host:port>] file send <local> <remote>
+hdc-direct [-t <host:port>] file recv <remote> <local>
 hdc-direct [-t <host:port>] install <local.hap> [--launch <bundle> <ability>]
 hdc-direct [-t <host:port>] root
 hdc-direct tconn <host:port> [-remove]
@@ -128,6 +129,7 @@ hdc-direct [-t <host:port>] <other command>     # 按 shell 转发
 hdc-direct tconn 127.0.0.1:$(param get persist.hdc.port)
 hdc-direct shell "bm dump -n com.example.app | head -3"
 hdc-direct install build/entry-default-signed.hap --launch com.example.app EntryAbility
+hdc-direct file recv /data/local/tmp/shot.jpeg ./shot.jpeg
 ```
 
 ### 密钥

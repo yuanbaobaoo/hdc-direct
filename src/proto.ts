@@ -47,6 +47,8 @@ export const CMD = {
     UNITY_EXECUTE: 1001,
     // 切换 hdcd 运行模式：空 payload 开启 root，"r" 关闭
     UNITY_ROOTRUN: 1007,
+    // file 任务：接收方向由客户端发起（daemon 读远端文件并回传）
+    FILE_INIT: 3000,
     // file 任务：参数检查 / 传输开始 / 数据块 / 结束
     FILE_CHECK: 3001,
     FILE_BEGIN: 3002,
