@@ -59,9 +59,12 @@ jobs:
           test -f "dist-release/$TGZ.sha256"
           test -f "dist-release/hdc-direct-${VERSION}.json"
           (cd dist-release && sha256sum -c "$TARBALL.sha256" && sha256sum -c "$TGZ.sha256")
-          tar -tzf "dist-release/$TARBALL" | grep -q "dist/src/cli.js"
-          tar -tzf "dist-release/$TGZ" | grep -qx "package/dist/src/cli.js"
-          tar -tzf "dist-release/$TGZ" | grep -qx "package/package.json"
+          LIST_DIR="$(mktemp -d)"
+          tar -tzf "dist-release/$TARBALL" > "$LIST_DIR/tar.txt"
+          tar -tzf "dist-release/$TGZ" > "$LIST_DIR/tgz.txt"
+          grep -q "dist/src/cli.js" "$LIST_DIR/tar.txt"
+          grep -qx "package/dist/src/cli.js" "$LIST_DIR/tgz.txt"
+          grep -qx "package/package.json" "$LIST_DIR/tgz.txt"
 
       - name: Package smoke test
         run: |
@@ -74,7 +77,12 @@ jobs:
           cd "$WORK"
           npm init -y >/dev/null
           npm install "$TGZ" >/dev/null
-          ./node_modules/.bin/hdc-direct -v | grep -q '^Ver: '
+          NPM_OUT="$(./node_modules/.bin/hdc-direct -v)"
+          echo "$NPM_OUT"
+          case "$NPM_OUT" in
+            Ver:*) ;;
+            *) exit 1 ;;
+          esac
           node --input-type=module -e "import { HdcSession } from 'hdc-direct'; if (typeof HdcSession !== 'function') process.exit(1)"
 
           # pnpm 安装：验证 lockfile 记录 integrity，且 .bin 可用
@@ -83,7 +91,12 @@ jobs:
           cd pnpm-case
           pnpm init >/dev/null
           pnpm add "$TGZ" >/dev/null
-          ./node_modules/.bin/hdc-direct -v | grep -q '^Ver: '
+          PNPM_OUT="$(./node_modules/.bin/hdc-direct -v)"
+          echo "$PNPM_OUT"
+          case "$PNPM_OUT" in
+            Ver:*) ;;
+            *) exit 1 ;;
+          esac
           grep -q 'integrity:' pnpm-lock.yaml
 
       - name: Upload artifact

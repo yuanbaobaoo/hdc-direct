@@ -1,6 +1,6 @@
 {
   "name": "hdc-direct",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "HDC client that talks directly to on-device hdcd over TCP — no hdc server / UDS required. Works inside HAP sandboxes where the stock hdc toolchain cannot start.",
   "repository": {
     "type": "git",
