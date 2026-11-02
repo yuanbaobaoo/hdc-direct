@@ -213,6 +213,26 @@ impl HdcSession {
         let out = self.shell(cmd)?;
         Ok(String::from_utf8_lossy(&out).into_owned())
     }
+
+    /// 请求 hdcd 以 root 重启（等价官方 `hdc root`）。返回 daemon 的即时
+    /// 响应文本（如 "Cannot set root run mode in undebuggable version."）。
+    pub fn request_root_restart_raw(&mut self) -> Result<Vec<u8>, String> {
+        let channel = rand_u32();
+        self.send_raw(&build_frame(channel, CMD_UNITY_ROOTRUN, &[]))?;
+        let mut out = Vec::new();
+        loop {
+            let f = self.wait_frame(channel, None)?;
+            match f.command_flag {
+                CMD_KERNEL_ECHO | CMD_KERNEL_ECHO_RAW => out.extend_from_slice(&f.data),
+                CMD_KERNEL_CHANNEL_CLOSE => {
+                    self.send_raw(&build_frame(channel, CMD_KERNEL_CHANNEL_CLOSE, &[0]))?;
+                    self.send_raw(&build_frame(channel, CMD_KERNEL_CHANNEL_CLOSE, &[0]))?;
+                    return Ok(out);
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 fn hostname_str() -> String {

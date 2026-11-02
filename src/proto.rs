@@ -22,6 +22,7 @@ pub const CMD_KERNEL_ECHO: u16 = 9;
 pub const CMD_KERNEL_ECHO_RAW: u16 = 10;
 pub const CMD_KERNEL_WAKEUP_SLAVETASK: u16 = 12; // file 任务前导空帧（抓包实证）
 pub const CMD_UNITY_EXECUTE: u16 = 1001;
+pub const CMD_UNITY_ROOTRUN: u16 = 1007; // 空 payload 开启 root，"r" 关闭（daemon 侧自检 const.debuggable）
 pub const CMD_FILE_CHECK: u16 = 3001;
 pub const CMD_FILE_BEGIN: u16 = 3002;
 pub const CMD_FILE_DATA: u16 = 3003;

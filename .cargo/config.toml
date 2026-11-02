@@ -1,12 +1,11 @@
 # 交叉编译 OpenHarmony 设备（arm64）：
 #   cargo build --release --target aarch64-unknown-linux-ohos
-# sysroot 取自本机 DevEco command-line-tools 的 native SDK，可按需修改路径。
-# libunwind 取自 SDK llvm 预编译库（rust-std 引用 _Unwind_Resume）。
+#
+# 链接器用 SDK clang 驱动（.cargo/ohos-cc/ohos-clang，等价 NDK 的
+# aarch64-unknown-linux-ohos-clang wrapper）：由它组织 Scrt1/crti/crtbeginS
+# 顺序与 PT_INTERP(/lib/ld-musl-aarch64.so.1)。直接用 rust-lld 会得到
+# entry=0x0 且无 PT_INTERP 的产物 —— OHOS 内核 execve 拒绝（EACCES）。
+# clang 与 libunwind 取自本机 DevEco command-line-tools，路径按需调整。
 
 [target.aarch64-unknown-linux-ohos]
-linker = "rust-lld"
-rustflags = [
-    "-C", "link-arg=--sysroot=/Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/sysroot",
-    "-C", "link-arg=-L/Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/sysroot/usr/lib/aarch64-linux-ohos",
-    "-C", "link-arg=-L/Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/llvm/lib/aarch64-linux-ohos",
-]
+linker = "/Users/Shared/codes/personal/hdc-direct/.cargo/ohos-cc/ohos-clang"

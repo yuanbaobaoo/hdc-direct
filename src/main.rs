@@ -81,6 +81,14 @@ fn run(args: &[String]) -> Result<i32, String> {
             let _ = s.shell_str(&format!("rm -f {remote}"));
             Ok(0)
         }
+        "root" => {
+            // 等价官方 `hdc root`：daemon 以 root 重启，随后可重连获得 root shell
+            let mut s = HdcSession::connect(&host, port)?;
+            let resp = s.request_root_restart_raw()?;
+            println!("{}", String::from_utf8_lossy(&resp));
+            eprintln!("[root] restart requested; reconnect in a few seconds");
+            Ok(0)
+        }
         _ => {
             eprintln!("{USAGE}");
             Ok(2)

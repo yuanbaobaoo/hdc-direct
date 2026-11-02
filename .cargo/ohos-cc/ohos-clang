@@ -1,0 +1,10 @@
+#!/bin/sh
+# OHOS 交叉链接驱动：等价 SDK 的 aarch64-unknown-linux-ohos-clang wrapper
+# （原 wrapper 相对路径解析依赖安装位置，这里显式展开；clang/ld.lld 需先
+#  chmod +x，SDK 默认不带执行位）
+exec /Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/llvm/bin/clang \
+  -target aarch64-linux-ohos \
+  --sysroot=/Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/sysroot \
+  -D__MUSL__ \
+  --ld-path=/Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/llvm/bin/ld.lld \
+  "$@"
