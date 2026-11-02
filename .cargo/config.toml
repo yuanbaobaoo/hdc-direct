@@ -1,0 +1,12 @@
+# 交叉编译 OpenHarmony 设备（arm64）：
+#   cargo build --release --target aarch64-unknown-linux-ohos
+# sysroot 取自本机 DevEco command-line-tools 的 native SDK，可按需修改路径。
+# libunwind 取自 SDK llvm 预编译库（rust-std 引用 _Unwind_Resume）。
+
+[target.aarch64-unknown-linux-ohos]
+linker = "rust-lld"
+rustflags = [
+    "-C", "link-arg=--sysroot=/Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/sysroot",
+    "-C", "link-arg=-L/Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/sysroot/usr/lib/aarch64-linux-ohos",
+    "-C", "link-arg=-L/Users/Shared/local/ohos/command-line-tools_26.0.0_Beta1/sdk/default/openharmony/native/llvm/lib/aarch64-linux-ohos",
+]

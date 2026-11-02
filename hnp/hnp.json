@@ -1,0 +1,9 @@
+{
+  "type": "hnp-config",
+  "name": "hdc-direct",
+  "version": "0.1.0",
+  "arch": "arm64",
+  "os": "ohos",
+  "summary": "HDC client that connects to on-device hdcd directly over TCP, no hdc server (UDS) required. Enables shell / file transfer / HAP install inside HAP sandboxes (e.g. develop_tools_debug_hap) where the stock hdc toolchain cannot run.",
+  "install": {}
+}
