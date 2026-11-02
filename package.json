@@ -1,7 +1,15 @@
 {
   "name": "hdc-direct",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "HDC client that talks directly to on-device hdcd over TCP — no hdc server / UDS required. Works inside HAP sandboxes where the stock hdc toolchain cannot start.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuanbaobaoo/hdc-direct.git"
+  },
+  "homepage": "https://github.com/yuanbaobaoo/hdc-direct#readme",
+  "bugs": {
+    "url": "https://github.com/yuanbaobaoo/hdc-direct/issues"
+  },
   "type": "module",
   "bin": {
     "hdc-direct": "./dist/src/cli.js"
@@ -12,7 +20,8 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "default": "./dist/src/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist/src",
@@ -23,7 +32,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test \"dist/test/**/*.test.js\"",
     "prepare": "npm run build",

@@ -11,7 +11,7 @@
 ## 触发
 
 push `v*` tag → `.github/workflows/release.yml` 依次执行
-`typecheck → test → 打包 → 资产校验 → 发布 Release`。
+`typecheck → test → 打包 → 资产校验 → npm/pnpm 安装冒烟 → 发布 Release`。
 
 `workflow_dispatch` 只跑构建并上传 Actions Artifact，用于验证流水线，不产生 Release。
 
@@ -39,17 +39,30 @@ push `v*` tag → `.github/workflows/release.yml` 依次执行
 4. **打 tag 并推送**：`git tag -a v<version> -m "<一句话>"`、`git push origin v<version>`。
 5. **验收**（三项都过才算发完）：
    - workflow 结论为 success；
-   - Release 资产齐全：`hdc-direct-<version>.tar.gz`、`.tar.gz.sha256`、`.json`；
-   - 下载后 `sha256sum -c hdc-direct-<version>.tar.gz.sha256` 通过，
-     且包内存在 `dist/src/cli.js`。
+   - Release 资产齐全：`hdc-direct-<version>.tgz`、`.tgz.sha256`、
+     `hdc-direct-<version>.tar.gz`、`.tar.gz.sha256`、`.json`；
+   - 下载后两个 `.sha256` 均校验通过；`.tgz` 顶层存在 `package/`，包内存在
+     `package/dist/src/cli.js`；`.tar.gz` 包内存在 `dist/src/cli.js`。
 
 ## 发布内容
 
+- `hdc-direct-<version>.tgz`：`npm pack` 生成的 npm 包布局（顶层 `package/`），
+  含 `dist/src/`（编译产物）、`package.json`、`README.md`、`LICENSE`。
+  供下游在 `package.json` 中写 URL 依赖；安装后 `pnpm-lock.yaml` 记录 integrity。
 - `hdc-direct-<version>.tar.gz`：`dist/src/`（编译产物）+ `package.json` +
   `README.md` + `LICENSE`。入口 `dist/src/cli.js`，运行时零依赖，Node ≥ 18。
-- `hdc-direct-<version>.json`：包名、版本、协议验证结论、入口、运行时要求，
-  供下游判断兼容性。
+- `hdc-direct-<version>.json`：包名、版本、协议验证结论、入口、npm tarball 文件名、
+  运行时要求，供下游判断兼容性。
 - Release body：上一 tag 至本 tag 的提交列表 + 资产表 + 使用片段，由 CI 生成。
+
+## URL 依赖约定
+
+- 下游固定到不可变 tag：
+  `https://github.com/yuanbaobaoo/hdc-direct/releases/download/v<version>/hdc-direct-<version>.tgz`。
+- 升级 = 改 URL 中的版本号 + `pnpm install`；URL 依赖没有 semver 范围。
+- `.tgz` 必须由 `npm pack` 生成，禁止手工 `tar` 伪造 `package/` 布局。
+- 不要使用 GitHub 自动生成的 Source code 压缩包：不含 `dist/`，且远程 tarball
+  安装时不会执行 `prepare`。
 
 ## 禁止
 

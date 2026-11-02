@@ -44,16 +44,53 @@ hdc-direct 跳过 server 层，直接实现 host ↔ daemon 协议：
 
 ## 怎么使用
 
-### 安装
+### 安装（作为 node_modules 依赖）
 
-从 GitHub Release 下载对应版本，解包即用：
+GitHub Release 提供 npm 包布局的 `.tgz`（顶层是 `package/`）。在
+`package.json` 里直接写 URL：
+
+```json
+{
+  "dependencies": {
+    "hdc-direct": "https://github.com/yuanbaobaoo/hdc-direct/releases/download/v<version>/hdc-direct-<version>.tgz"
+  }
+}
+```
+
+```sh
+pnpm install
+```
+
+`pnpm-lock.yaml` 会记录 tarball 的 integrity，`pnpm install --frozen-lockfile`
+可用。tarball 内已含 `dist/src`，安装时不需要 TypeScript 构建。升级时把 URL
+里的版本号改成新版本，再执行 `pnpm install`。
+
+> 请使用 Release 资产里的 `.tgz`，不要用 GitHub 自动生成的 Source code 压缩包
+> （不含 `dist/`，且作为远程 tarball 安装时不会执行 `prepare`）。
+
+安装后可作为库引入，也可以调用 CLI：
+
+```sh
+pnpm exec hdc-direct -v
+```
+
+需要全局命令时：
+
+```sh
+npm install -g https://github.com/yuanbaobaoo/hdc-direct/releases/download/v<version>/hdc-direct-<version>.tgz
+hdc-direct -v
+```
+
+### 安装（解包即用）
+
+从 GitHub Release 下载整包，解包直接运行入口：
 
 ```sh
 tar -xzf hdc-direct-<version>.tar.gz
 node hdc-direct-<version>/dist/src/cli.js -v
 ```
 
-也可以作为库引入：
+### 作为库引入
 
 ```ts
 import { HdcSession } from 'hdc-direct';
@@ -62,6 +99,12 @@ const session = await HdcSession.connect('127.0.0.1', 46273);
 console.log(await session.shellStr('id'));
 session.close();
 ```
+
+> 本包是纯 ESM，请使用 `import`；CommonJS 的 `require('hdc-direct')` 不支持。
+> TypeScript 项目需要自行安装 `@types/node`。
+
+> 用 pnpm 打包/复制时注意：`node_modules/hdc-direct` 是软链，复制到产物目录请用
+> `cp -RL`（或 `rsync -aL`）；复制后不要再执行 `npm install`。
 
 ### 命令
 

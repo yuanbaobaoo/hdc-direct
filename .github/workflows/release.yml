@@ -52,11 +52,39 @@ jobs:
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
           TARBALL="hdc-direct-${VERSION}.tar.gz"
+          TGZ="hdc-direct-${VERSION}.tgz"
           test -f "dist-release/$TARBALL"
           test -f "dist-release/$TARBALL.sha256"
+          test -f "dist-release/$TGZ"
+          test -f "dist-release/$TGZ.sha256"
           test -f "dist-release/hdc-direct-${VERSION}.json"
-          (cd dist-release && sha256sum -c "$TARBALL.sha256")
+          (cd dist-release && sha256sum -c "$TARBALL.sha256" && sha256sum -c "$TGZ.sha256")
           tar -tzf "dist-release/$TARBALL" | grep -q "dist/src/cli.js"
+          tar -tzf "dist-release/$TGZ" | grep -qx "package/dist/src/cli.js"
+          tar -tzf "dist-release/$TGZ" | grep -qx "package/package.json"
+
+      - name: Package smoke test
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          TGZ="$PWD/dist-release/hdc-direct-${VERSION}.tgz"
+
+          # npm 安装：验证 .bin 软链入口能正常执行
+          WORK="$(mktemp -d)"
+          cd "$WORK"
+          npm init -y >/dev/null
+          npm install "$TGZ" >/dev/null
+          ./node_modules/.bin/hdc-direct -v | grep -q '^Ver: '
+          node --input-type=module -e "import { HdcSession } from 'hdc-direct'; if (typeof HdcSession !== 'function') process.exit(1)"
+
+          # pnpm 安装：验证 lockfile 记录 integrity，且 .bin 可用
+          npm install -g pnpm@11 >/dev/null
+          mkdir pnpm-case
+          cd pnpm-case
+          pnpm init >/dev/null
+          pnpm add "$TGZ" >/dev/null
+          ./node_modules/.bin/hdc-direct -v | grep -q '^Ver: '
+          grep -q 'integrity:' pnpm-lock.yaml
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -88,6 +116,8 @@ jobs:
             echo
             echo "| 文件 | 说明 |"
             echo "| --- | --- |"
+            echo "| \`hdc-direct-${VERSION}.tgz\` | npm 包布局（顶层 \`package/\`），可写进 \`package.json\` 作为 URL 依赖 |"
+            echo "| \`hdc-direct-${VERSION}.tgz.sha256\` | 校验和 |"
             echo "| \`hdc-direct-${VERSION}.tar.gz\` | 解包即用，入口 \`dist/src/cli.js\` |"
             echo "| \`hdc-direct-${VERSION}.tar.gz.sha256\` | 校验和 |"
             echo "| \`hdc-direct-${VERSION}.json\` | 版本元信息（协议验证版本、入口、运行时） |"
@@ -99,6 +129,22 @@ jobs:
             echo "node hdc-direct-${VERSION}/dist/src/cli.js -v"
             echo '```'
             echo
+            echo "### 作为 node_modules 依赖"
+            echo
+            echo '```json'
+            echo '{'
+            echo '  "dependencies": {'
+            echo "    \"hdc-direct\": \"https://github.com/yuanbaobaoo/hdc-direct/releases/download/v${VERSION}/hdc-direct-${VERSION}.tgz\""
+            echo '  }'
+            echo '}'
+            echo '```'
+            echo
+            echo '```sh'
+            echo "pnpm install"
+            echo '```'
+            echo
+            echo "\`pnpm-lock.yaml\` 会记录 tarball 的 integrity；升级时把 URL 里的版本号改掉再 \`pnpm install\`。"
+            echo
             echo "首次连接会在设备上弹一次「允许调试」授权；私钥需为无口令 PKCS8 PEM。"
           } > dist-release/release-body.md
           cat dist-release/release-body.md
@@ -109,6 +155,8 @@ jobs:
         with:
           body_path: dist-release/release-body.md
           files: |
+            dist-release/hdc-direct-*.tgz
+            dist-release/hdc-direct-*.tgz.sha256
             dist-release/hdc-direct-*.tar.gz
             dist-release/hdc-direct-*.tar.gz.sha256
             dist-release/hdc-direct-*.json

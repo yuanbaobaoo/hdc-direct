@@ -12,8 +12,9 @@
  *   hdc-direct -v | kill | start | checkserver
  *   hdc-direct [-t <host:port>] <other command>    # 未知命令按 shell 转发
  */
+import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 import { HdcSession } from './session.js';
 import { defaultTarget, loadTargets, saveTargets, splitTarget } from './targets.js';
@@ -333,9 +334,27 @@ async function runEntry(): Promise<number> {
     }
 }
 
+/**
+ * 判断当前模块是否被作为入口直接执行。
+ *
+ * npm/npx 通过 node_modules/.bin 的符号链接启动时，argv[1] 是链接路径，
+ * 而 import.meta.url 是 Node 解析后的真实路径；直接比较会判定失败，
+ * CLI 便静默退出。两边取 realpath 后再比较，兼容软链与 macOS 的
+ * /tmp → /private/tmp 路径差异。
+ *
+ * @returns 是否直接执行
+ */
+function isDirectExecution(): boolean {
+    const entry = process.argv[1];
+    if (entry === undefined) return false;
+    try {
+        return fs.realpathSync(path.resolve(entry)) === fs.realpathSync(fileURLToPath(import.meta.url));
+    } catch {
+        return false;
+    }
+}
+
 // 作为 CLI 直接执行时启动；被 import 时仅导出函数
-const isEntry =
-    process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-if (isEntry) {
+if (isDirectExecution()) {
     process.exit(await runEntry());
 }
