@@ -214,6 +214,12 @@ impl HdcSession {
         Ok(String::from_utf8_lossy(&out).into_owned())
     }
 
+    /// 优雅断开：FIN 关闭（RST 会让 daemon 的 session 清理卡在 busy 状态）。
+    pub fn request_close(&mut self) {
+        let _ = self.stream.shutdown(std::net::Shutdown::Write);
+        let _ = self.stream.flush();
+    }
+
     /// 请求 hdcd 以 root 重启（等价官方 `hdc root`）。返回 daemon 的即时
     /// 响应文本（如 "Cannot set root run mode in undebuggable version."）。
     pub fn request_root_restart_raw(&mut self) -> Result<Vec<u8>, String> {

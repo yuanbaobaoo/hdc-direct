@@ -22,13 +22,22 @@ OpenHarmony / HarmonyOS PC 上官方 hdc 工具链是 `client → UDS server →
 
 ## 用法
 
+Rust 版与 `js/` 版 CLI 完全对齐（可直接替换官方 `hdc` 供 devecocli 等工具调用）：
+
 ```sh
-hdc-direct <host:port> shell "<command>"
-hdc-direct <host:port> file send <local> <remote>
-hdc-direct <host:port> install <local.hap> [--launch <bundle> <ability>]
+hdc-direct [-t <host:port>] shell "<command>"
+hdc-direct [-t <host:port>] file send <local> <remote>
+hdc-direct [-t <host:port>] install <local.hap> [--launch <bundle> <ability>]
+hdc-direct [-t <host:port>] root            # hdcd 以 root 重启（需 debuggable 设备）
+hdc-direct tconn <host:port> [-remove]
+hdc-direct list targets [-v]
+hdc-direct -v | kill | start | checkserver  # no-op 兼容
+hdc-direct [-t <key>] <other command>       # 未知命令按 shell 转发
 ```
 
-host:port 在设备本机自连时为 `127.0.0.1:$(param get persist.hdc.port)`。
+target 记忆在 `~/.harmony/hdc-direct-targets.json`（与 js 版共用）；无 `-t` 时取
+第一个已存 target，为空时自动探测本机端口（`param get persist.hdc.port`，
+仅设备/沙箱内可用）。设备本机自连地址为 `127.0.0.1:$(param get persist.hdc.port)`。
 
 ### 认证与密钥
 
