@@ -1,6 +1,6 @@
 # hdc-direct
 
-直连 hdcd 的 HDC 客户端。跳过 hdc server，用 TCP 直接和设备的 hdcd 说话，
+直连 hdcd 的 HDC 客户端。跳过 hdc server，用 TCP 直连设备的 hdcd，
 在 HAP 沙箱里也能执行 shell、传输文件、安装调试 HAP。
 
 TypeScript 编写，零运行时依赖，只需 Node ≥ 18。
@@ -109,18 +109,6 @@ npm test                # 协议黄金用例（取自真机抓包字节）
 npm run build           # tsc → dist/
 npm run pack:release    # 生成 dist-release/ 发布资产
 ```
-
-- `src/proto.ts` 帧与 protobuf 编码
-- `src/auth.ts` 密钥与挑战签名
-- `src/session.ts` 握手、shell、文件传输
-- `src/targets.ts` target 状态与默认端口探测
-- `src/cli.ts` 命令面
-- `test/proto.golden.test.ts` 协议字节基线，改编码器必须保持通过
-
-编码规范见 [.agents/coding-rules.md](.agents/coding-rules.md)。
-
-发布：打 `v*` tag 后由 CI 构建并上传 `hdc-direct-<version>.tar.gz`、
-`.sha256`、`.json`（含协议验证版本与入口信息）。
 
 ## License
 
