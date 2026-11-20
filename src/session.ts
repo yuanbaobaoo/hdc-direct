@@ -36,6 +36,9 @@ const CHANNEL_ID_MAX = 0x7fffffff;
 const SESSION_ID_MAX = 0xffff;
 // 关闭连接后等待对端 FIN 的宽限期（ms）
 const CLOSE_GRACE_MS = 3000;
+
+// 握手收尾帧（daemon -> client）的最长等待；部分 daemon 实现不发该帧。
+const HANDSHAKE_CLOSE_TIMEOUT_MS = 1000;
 // 解析错误哨兵帧的 channelId：不会与真实通道碰撞
 const ERROR_CHANNEL_ID = 0xffffffff;
 // 解析错误哨兵帧的 commandFlag
@@ -235,6 +238,12 @@ export class HdcSession {
         ]);
         this.send(buildFrame(0, CMD.KERNEL_HANDSHAKE, encodeHandshake({ authType: AUTH.PUBLICKEY, buf: payload })));
         hs = parseHandshake((await this.wait(0, undefined, 'handshake pubkey')).data);
+        if (hs.authType === AUTH.OK) {
+            // daemon 已信任该公钥时直接返回 OK（不再下发签名挑战）；官方客户端在这条
+            // 路径上也不发收尾 CHANNEL_CLOSE。此前只接受 SIGNATURE，会误报
+            // `expect AUTH_SIGNATURE, got 4`（HarmonyOS 真机 2026-11-20 实测）。
+            return;
+        }
         if (hs.authType !== AUTH.SIGNATURE) {
             throw new Error(`expect AUTH_SIGNATURE, got ${hs.authType}`);
         }
@@ -248,9 +257,14 @@ export class HdcSession {
             throw new Error(`auth failed (type=${hs.authType}): ${msg}`);
         }
 
-        // 4) daemon 发 cid=0 CHANNEL_CLOSE(data=01)，回 data=00（抓包行为）
-        await this.wait(0, CMD.KERNEL_CHANNEL_CLOSE, 'handshake close');
-        this.send(buildFrame(0, CMD.KERNEL_CHANNEL_CLOSE, Buffer.from([CHANNEL_CLOSE_ACK])));
+        // 4) daemon 可能发 cid=0 CHANNEL_CLOSE(data=01)，回 data=00（抓包行为）；
+        //    部分实现不发，短等待后放行，避免把已成功的握手误判为失败。
+        try {
+            await this.wait(0, CMD.KERNEL_CHANNEL_CLOSE, 'handshake close', HANDSHAKE_CLOSE_TIMEOUT_MS);
+            this.send(buildFrame(0, CMD.KERNEL_CHANNEL_CLOSE, Buffer.from([CHANNEL_CLOSE_ACK])));
+        } catch {
+            // 没有收尾帧也视为完成（AUTH_OK 已收到）。
+        }
     }
 
     /**
@@ -271,10 +285,15 @@ export class HdcSession {
      * @param what 超时错误中描述等待目标
      * @returns 匹配的帧
      */
-    private wait(channelId: number, commandFlag: number | undefined, what: string): Promise<Frame> {
+    private wait(
+        channelId: number,
+        commandFlag: number | undefined,
+        what: string,
+        timeoutMs: number = this.timeoutMs,
+    ): Promise<Frame> {
         return this.queue.next(
             (f) => f.channelId === channelId && (commandFlag === undefined || f.commandFlag === commandFlag),
-            this.timeoutMs,
+            timeoutMs,
             what,
         );
     }
